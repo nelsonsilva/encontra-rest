@@ -16,9 +16,12 @@ public class SearchTest extends JerseyTest {
     }
 
     @Test
-    public void testSearch() {
-        final String responseMsg = target().path("search").request().get(String.class);
+    public void testStorage() {
+        final String responseMsg = target().path("search/image/btree/storeIndexes").queryParam("path", "C:\\Users\\João\\Desktop\\imagens").request().get(String.class);
+    }
 
-        assertEquals("Hello from EnContRA!", responseMsg);
+    @Test
+    public void testSimilar() {
+        final String responseMsg = target().path("search/image/similar").queryParam("descriptor", "Fcth").queryParam("path", "C:\\Users\\João\\Desktop\\img.png").request().get(String.class);
     }
 }
