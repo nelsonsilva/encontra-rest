@@ -18,6 +18,9 @@ import pt.inevo.encontra.descriptors.DescriptorExtractor;
 import pt.inevo.encontra.engine.SimpleEngine;
 import pt.inevo.encontra.engine.SimpleIndexedObjectFactory;
 
+import pt.inevo.encontra.index.search.SimpleSearcher;
+import pt.inevo.encontra.lucene.index.LuceneEngine;
+import pt.inevo.encontra.lucene.index.LuceneIndex;
 import pt.inevo.encontra.nbtree.index.BTreeIndex;
 import pt.inevo.encontra.nbtree.index.NBTreeSearcher;
 import pt.inevo.encontra.query.CriteriaQuery;
@@ -35,7 +38,6 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
      * Currently working for images and btree index
      *
      * @param type multimedia type - image, 3dObject,etc
-     * @param index indexing type - btree, lucene
      * @param path Images folder
      * @return
      * @throws NoSuchMethodException
@@ -45,8 +47,8 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
      */
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    @Path("/{type}/{index}/storeIndexes")
-    public String storeIndexes (@PathParam("type") String type, @PathParam("index") String index, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    @Path("/{type}/storeIndexes")
+    public String storeIndexes (@PathParam("type") String type, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
         ImageDescriptorMap[] descriptors = ImageDescriptorMap.values(); //Get all descriptors
         EntityStorage storage = new SimpleFSObjectStorage(ImageModel.class);
@@ -65,33 +67,44 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
             imgModels.add(im);
         }
 
+        IndexMap[] indexes = IndexMap.values();
+        for(IndexMap indexMap: indexes) {
 
-        for (ImageDescriptorMap descriptor : descriptors) {
-            SimpleEngine<ImageModel> e = new SimpleEngine<ImageModel>();
-            e.setObjectStorage(storage);
-            e.setQueryProcessor(new QueryProcessorDefaultImpl());
-            e.setIndexedObjectFactory(new SimpleIndexedObjectFactory());
+            Class<?> indexClass = indexMap.getFeatureClass();
+            String index=indexMap.toString().toUpperCase();
 
-            NBTreeSearcher imageSearcher = new NBTreeSearcher();
+            for (ImageDescriptorMap descMap : descriptors) {
 
-            Class<?> descriptorClass = descriptor.getFeatureClass();
+                SimpleEngine<ImageModel> e = new SimpleEngine();
+                e.setObjectStorage(storage);
 
-            D myInstance = (D) descriptorClass.getConstructor().newInstance();
-
-            System.out.println(myInstance.toString());
-            //using a single descriptor
-            imageSearcher.setDescriptorExtractor(myInstance);
-            BTreeIndex btree = new BTreeIndex("data/indexes/" + descriptor.toString(), descriptorClass);
-
-            imageSearcher.setIndex(btree);
-
-            e.setSearcher("image", imageSearcher);
+                //Fixer for now. Should have a mapper also?
+                AbstractSearcher imageSearcher;
+                if (index.equals("BTREE")) {
+                    imageSearcher = new NBTreeSearcher();
+                } else {
+                    imageSearcher = new SimpleSearcher();
+                }
 
 
-            System.out.println("Loading some objects to the test indexes");
-            //Inserting the models in the index. The objects will be stored only in the first time
-            for (ImageModel img : imgModels){
-                e.insert(img);
+                Class<?> descriptorClass = descMap.getFeatureClass();
+
+                D myInstance = (D) descriptorClass.getConstructor().newInstance();
+
+                I indexInstance = (I) indexClass.getConstructor(String.class, Class.class).newInstance("data/indexes/" + index + "/" + descMap.toString(), descriptorClass);
+                imageSearcher.setIndex(indexInstance);
+
+                System.out.println(myInstance.toString());
+                //using a single descriptor
+                imageSearcher.setDescriptorExtractor(myInstance);
+
+                e.setSearcher("image", imageSearcher);
+
+                System.out.println("Loading some objects to the test indexes");
+                //Inserting the models in the index. The objects will be stored only in the first time
+                for (ImageModel img : imgModels) {
+                    e.insert(img);
+                }
             }
         }
         return "see_what_to_return";
@@ -120,14 +133,20 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
 
         EntityStorage storage = new SimpleFSObjectStorage(ImageModel.class);
 
-
+        IndexMap indexMap = IndexMap.valueOf(index.toUpperCase());
+        Class<?> indexClass = indexMap.getFeatureClass();
 
         SimpleEngine<ImageModel> e = new SimpleEngine<ImageModel>();
         e.setObjectStorage(storage);
-        e.setQueryProcessor(new QueryProcessorDefaultImpl());
-        e.setIndexedObjectFactory(new SimpleIndexedObjectFactory());
 
-        NBTreeSearcher imageSearcher = new NBTreeSearcher();
+        //Fixer for now. Should have a mapper also?
+        AbstractSearcher imageSearcher;
+        if(index.toUpperCase().equals("BTREE")){
+            imageSearcher = new NBTreeSearcher();
+        }
+        else {
+            imageSearcher = new SimpleSearcher();
+        }
 
         ImageDescriptorMap descMap = ImageDescriptorMap.valueOf(descriptor.toUpperCase());
         Class<?> descriptorClass = descMap.getFeatureClass();
@@ -137,9 +156,11 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
         System.out.println(myInstance.toString());
         //using a single descriptor
         imageSearcher.setDescriptorExtractor(myInstance);
-        BTreeIndex btree = new BTreeIndex("data/indexes/" + descMap.toString(), descriptorClass);
 
-        imageSearcher.setIndex(btree);
+
+        I indexInstance = (I) indexClass.getConstructor(String.class, Class.class).newInstance("data/indexes/"+index+"/"+descMap.toString(), descriptorClass);
+
+        imageSearcher.setIndex(indexInstance);
 
         e.setSearcher("image", imageSearcher);
 
@@ -148,7 +169,6 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
         ImageModelLoader loader = new ImageModelLoader(path);
         loader.load();
         Iterator<File> it = loader.iterator();
-        ArrayList<ImageModel> imgModels = new ArrayList<ImageModel>();
 
         for (int i = 0; it.hasNext(); i++) {
             File f = it.next();
@@ -173,29 +193,47 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
      */
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    @Path("/{type}/similar")
-    public String similar(@PathParam("type") String type, @QueryParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    @Path("/{type}/{index}/similar")
+    public String similar(@PathParam("type") String type, @PathParam("index") String index, @QueryParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
         //Creating the engine
         System.out.println("Creating the Retrieval Engine...");
-        SimpleEngine<ImageModel> e = new SimpleEngine();
+
+        //Lucene Index does not work with SimpleEngine
+        //Current fix, but need to do something better. Also a map?
+        AbstractSearcher e;
+        if(index.toUpperCase()=="LUCENE"){
+            e = new LuceneEngine();
+        }
+        else {
+            e = new SimpleEngine();
+        }
+
         EntityStorage storage = new SimpleFSObjectStorage(ImageModel.class);
 
-        e.setQueryProcessor(new QueryProcessorDefaultImpl());
         e.setObjectStorage(storage);
-        e.setIndexedObjectFactory(new SimpleIndexedObjectFactory());
 
-        NBTreeSearcher imageSearcher = new NBTreeSearcher();
-        ImageDescriptorMap desc = ImageDescriptorMap.valueOf(descriptor.toUpperCase());
-        Class<?> descriptorClass = desc.getFeatureClass();
+        ImageDescriptorMap descMap = ImageDescriptorMap.valueOf(descriptor.toUpperCase());
+        Class<?> descriptorClass = descMap.getFeatureClass();
         D myInstance = (D) descriptorClass.getConstructor().newInstance();
+
+        IndexMap indexMap = IndexMap.valueOf(index.toUpperCase());
+        Class<?> indexClass = indexMap.getFeatureClass();
+        I indexInstance = (I) indexClass.getConstructor(String.class, Class.class).newInstance("data/indexes/"+index+"/"+descMap.toString(), descriptorClass);
+
+        //Fixer for now. Should have a mapper also?
+        AbstractSearcher imageSearcher;
+        if(index.toUpperCase().equals("BTREE")){
+            imageSearcher = new NBTreeSearcher();
+        }
+        else {
+            imageSearcher = new SimpleSearcher();
+        }
+
+        imageSearcher.setIndex(indexInstance);
 
         //using a single descriptor
         imageSearcher.setDescriptorExtractor(myInstance);
-        //using a BTreeIndex
-
-        BTreeIndex btree = new BTreeIndex("data/indexes/" + descriptor.toUpperCase(), descriptorClass);
-        imageSearcher.setIndex(btree);
 
         imageSearcher.setQueryProcessor(new QueryProcessorDefaultImpl());
         imageSearcher.setResultProvider(new DefaultResultProvider());
@@ -223,52 +261,5 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
         }
         return "see_what_to_return";
     }
-
-    /*
-    @GET
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("/{type}/{index}/storeIndex")
-    public String storeIndex (@PathParam("type") String type, @PathParam("index") String index, @QueryParam("path") String path, @QueryParam("descriptor") String descriptor) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        ImageDescriptorMap descMap = ImageDescriptorMap.valueOf(descriptor.toUpperCase());
-        Class<?> descriptorClass = descMap.getFeatureClass();
-
-        // Lucene e BTree estao implementados de forma diferente. Condicao ate ser resolvido.
-        if(index == "Lucene")
-        {
-            LuceneIndex indexInstance = new LuceneIndex(descriptor, descriptorClass);
-        }
-        else {
-            IndexMap indMap = IndexMap.valueOf(index.toUpperCase());
-            Class<?> indexClass = indMap.getFeatureClass();
-            I indexInstance = (I) indexClass.getConstructor().newInstance("indexes/" + index + "/", descriptor, descriptorClass);
-        }
-        return type;
-    }
-    */
-
-    /*
-    @GET
-    @Path("/{type}/getDescriptors")
-    //@Produces("application/json")
-    @Consumes(MediaType.TEXT_PLAIN)
-    @Produces(MediaType.TEXT_PLAIN)
-    public String getDescriptors(@PathParam("type") String type) throws ClassNotFoundException, IOException {
-
-        Reflections reflections = new Reflections("pt.inevo.encontra." + type + ".descriptors", new SubTypesScanner(false));
-        Set<String> classes = reflections.getStore().getSubTypesOf(Object.class.getName());
-
-        System.out.println(classes.toString());
-        System.out.println(classes.size());
-        return classes.toString();
-    }
-
-
-    public Set<String> getClassNames()
-    {
-        Reflections reflections = new Reflections("pt.inevo.encontra", new SubTypesScanner(false));
-        Set<String> classes = reflections.getStore().getSubTypesOf(Object.class.getName());
-        return classes;
-    }
-*/
 
 }

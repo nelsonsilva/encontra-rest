@@ -15,7 +15,6 @@ import java.util.List;
 public class ImageModelLoader implements Iterable<File> {
 
     protected String imagesPath = "";
-    protected static Long idCount = 0l;
     protected List<File> imagesFiles;
 
     public ImageModelLoader() {
@@ -29,11 +28,9 @@ public class ImageModelLoader implements Iterable<File> {
 
         //for now only sets the filename
         ImageModel im = new ImageModel(image.getAbsolutePath(), "", null);
-        im.setId(idCount++);
 
         //get the description
         //TO DO - load the description from here
-        im.setDescription("Description: " + image.getAbsolutePath());
 
         //get the bufferedimage
         try {

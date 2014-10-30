@@ -62,7 +62,6 @@ public class ImageModel implements IEntity<Long> {
         return "TestModel{"
                 + "id=" + id
                 + ", title='" + filename + '\''
-                + ", content='" + description + '\''
                 + '}';
     }
 }
