@@ -91,7 +91,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
 
                 D myInstance = (D) descriptorClass.getConstructor().newInstance();
 
-                I indexInstance = (I) indexClass.getConstructor(String.class, Class.class).newInstance("data/indexes/" + index + "/" + descMap.toString(), descriptorClass);
+                I indexInstance = (I) indexClass.getConstructor(String.class, Class.class).newInstance("data/indexes/" + index.toLowerCase() + "/" + descMap.toString(), descriptorClass);
                 imageSearcher.setIndex(indexInstance);
 
                 System.out.println(myInstance.toString());
