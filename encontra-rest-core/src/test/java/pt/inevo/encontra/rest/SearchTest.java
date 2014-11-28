@@ -25,6 +25,6 @@ public class SearchTest extends JerseyTest {
 
     @Test
     public void testSimilar() {
-        final String responseMsg = target().path("search/image/btree/similar").queryParam("descriptor", "ColorLayout").queryParam("path", "C:\\Users\\João\\Desktop\\img.png").request().get(String.class);
+        final String responseMsg = target().path("search/image/lucene/similar").queryParam("descriptor", "ColorLayout").queryParam("path", "C:\\Users\\João\\Desktop\\img.png").request().get(String.class);
     }
 }

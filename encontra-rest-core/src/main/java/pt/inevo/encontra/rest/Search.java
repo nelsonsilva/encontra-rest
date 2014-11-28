@@ -51,7 +51,8 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
     public String storeIndexes (@PathParam("type") String type, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
         ImageDescriptorMap[] descriptors = ImageDescriptorMap.values(); //Get all descriptors
-        EntityStorage storage = new SimpleFSObjectStorage(ImageModel.class, "data/"+"type"+"/objects/");
+        String objectsPath = "data/"+type+"/objects/";
+        EntityStorage storage = new SimpleFSObjectStorage(ImageModel.class, objectsPath);
 
         System.out.println("Loading some objects");
         ImageModelLoader loader = new ImageModelLoader(path);
@@ -73,6 +74,13 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
             Class<?> indexClass = indexMap.getFeatureClass();
             String index=indexMap.toString().toUpperCase();
 
+            String indexesGenericPath = "data/"+type+"/indexes/" + index.toLowerCase() + "/";
+
+            File currentFile = new File(indexesGenericPath);
+            if (!currentFile.exists()) {
+                currentFile.getParentFile().mkdirs();
+            }
+
             for (ImageDescriptorMap descMap : descriptors) {
 
                 SimpleEngine<ImageModel> e = new SimpleEngine();
@@ -91,7 +99,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
 
                 D myInstance = (D) descriptorClass.getConstructor().newInstance();
 
-                I indexInstance = (I) indexClass.getConstructor(String.class, Class.class).newInstance("data/"+"type"+"/indexes/" + index.toLowerCase() + "/" + descMap.toString(), descriptorClass);
+                I indexInstance = (I) indexClass.getConstructor(String.class, Class.class).newInstance(indexesGenericPath + descMap.toString(), descriptorClass);
                 imageSearcher.setIndex(indexInstance);
 
                 System.out.println(myInstance.toString());
@@ -131,7 +139,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor & 
     public String storeIndex (@PathParam("type") String type, @PathParam("index") String index, @QueryParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
 
-        EntityStorage storage = new SimpleFSObjectStorage(ImageModel.class, "data/"+"type"+"/objects/");
+        EntityStorage storage = new SimpleFSObjectStorage(ImageModel.class, "data/"+type+"/objects/");
 
         IndexMap indexMap = IndexMap.valueOf(index.toUpperCase());
         Class<?> indexClass = indexMap.getFeatureClass();
