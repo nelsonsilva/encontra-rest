@@ -1,4 +1,4 @@
-package pt.inevo.encontra.rest;
+package pt.inevo.encontra.rest.utils;
 
 import pt.inevo.encontra.index.annotation.Indexed;
 import pt.inevo.encontra.storage.IEntity;

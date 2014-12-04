@@ -22,8 +22,14 @@
     <modules>
         <module>encontra-rest-core</module>
         <module>encontra-rest-app</module>
-        <module>encontra-rest-map</module>
     </modules>
+
+    <repositories>
+        <repository>
+            <id>codehaus</id>
+            <url>http://repository.codehaus.org/org/codehaus</url>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>
@@ -43,6 +49,16 @@
                 <version>${jersey.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.jersey</groupId>
+                <artifactId>jersey-json</artifactId>
+                <version>1.9</version>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.jackson</groupId>
+                <artifactId>jackson-mapper-asl</artifactId>
+                <version>1.9.13</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

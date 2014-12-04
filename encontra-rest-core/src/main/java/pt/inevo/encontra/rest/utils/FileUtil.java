@@ -1,4 +1,4 @@
-package pt.inevo.encontra.rest;
+package pt.inevo.encontra.rest.utils;
 
 import java.io.File;
 import java.util.ArrayList;

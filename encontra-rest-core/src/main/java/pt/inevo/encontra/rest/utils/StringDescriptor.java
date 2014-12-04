@@ -1,4 +1,4 @@
-package pt.inevo.encontra.rest;
+package pt.inevo.encontra.rest.utils;
 
 import pt.inevo.encontra.descriptors.Descriptor;
 import pt.inevo.encontra.descriptors.SimpleDescriptor;

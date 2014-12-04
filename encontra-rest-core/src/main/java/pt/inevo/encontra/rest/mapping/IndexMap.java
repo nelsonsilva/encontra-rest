@@ -1,4 +1,4 @@
-package pt.inevo.encontra.rest.map;
+package pt.inevo.encontra.rest.mapping;
 
 /**
  * Created by jpvguerreiro on 9/24/2014.

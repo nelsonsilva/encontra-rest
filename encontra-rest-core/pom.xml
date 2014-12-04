@@ -52,7 +52,7 @@
         </dependency>
         <dependency>
             <groupId>pt.inevo.encontra</groupId>
-            <artifactId>encontra-rest-map</artifactId>
+            <artifactId>encontra-3d-descriptors</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>

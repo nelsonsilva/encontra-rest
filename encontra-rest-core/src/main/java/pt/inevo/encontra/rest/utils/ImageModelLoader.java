@@ -1,4 +1,7 @@
-package pt.inevo.encontra.rest;
+package pt.inevo.encontra.rest.utils;
+
+import pt.inevo.encontra.storage.IEntity;
+import pt.inevo.encontra.storage.ModelLoader;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -12,19 +15,17 @@ import java.util.List;
  * Loader for Objects of the type: ImageModel.
  * @author Ricardo
  */
-public class ImageModelLoader implements Iterable<File> {
-
-    protected String imagesPath = "";
-    protected List<File> imagesFiles;
+public class ImageModelLoader<I extends IEntity> extends ModelLoader {
 
     public ImageModelLoader() {
     }
 
     public ImageModelLoader(String imagesPath) {
-        this.imagesPath = imagesPath;
+        this.modelsPath = imagesPath;
     }
 
-    public static ImageModel loadImage(File image) {
+    @Override
+     public ImageModel loadModel(File image) {
 
         //for now only sets the filename
         ImageModel im = new ImageModel(image.getAbsolutePath(), "", null);
@@ -43,7 +44,19 @@ public class ImageModelLoader implements Iterable<File> {
         return im;
     }
 
-    public List<ImageModel> getImages(String path) {
+    @Override
+    public BufferedImage loadBuffered(File image) {
+
+        BufferedImage bufImg=null;
+        try {
+            bufImg = ImageIO.read(image);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return bufImg;
+    }
+
+    public List<ImageModel> getModels(String path) {
         File root = new File(path);
         String[] extensions = {"jpg", "png"};
 
@@ -51,7 +64,7 @@ public class ImageModelLoader implements Iterable<File> {
         List<ImageModel> images = new ArrayList<ImageModel>();
 
         for (File f : imageFiles) {
-            images.add(loadImage(f));
+            images.add(loadModel(f));
         }
 
         return images;
@@ -61,19 +74,19 @@ public class ImageModelLoader implements Iterable<File> {
         File root = new File(path);
         String[] extensions = {"jpg", "png"};
 
-        imagesFiles = FileUtil.findFilesRecursively(root, extensions);
+        this.modelsFiles = FileUtil.findFilesRecursively(root, extensions);
     }
 
     public void load() {
-        load(imagesPath);
+        load(this.modelsPath);
     }
 
     public List<ImageModel> getImages() {
-        return getImages(imagesPath);
+        return getModels(this.modelsPath);
     }
 
     @Override
     public Iterator<File> iterator() {
-        return imagesFiles.iterator();
+        return modelsFiles.iterator();
     }
 }
