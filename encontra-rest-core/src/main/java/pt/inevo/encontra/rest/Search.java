@@ -10,6 +10,7 @@ import pt.inevo.encontra.rest.engines.ClutchAbstractEngine;
 import pt.inevo.encontra.rest.engines.ClutchImageEngine;
 import pt.inevo.encontra.rest.engines.ClutchThreedEngine;
 import pt.inevo.encontra.rest.utils.ImageModel;
+import pt.inevo.encontra.rest.utils.StreamUtil;
 import pt.inevo.encontra.storage.IEntity;
 import pt.inevo.encontra.storage.ModelLoader;
 import pt.inevo.encontra.threed.model.ThreedModel;
@@ -18,8 +19,12 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
+
+import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 @Path("search")
 public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E extends IEntity<Long>, O extends Object> {
@@ -112,7 +117,6 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         return "see_what_to_return";
     }
 
-    //Only for 3dModels now
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{type}/{descriptor}/storeIndex")
@@ -161,6 +165,91 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         ModelLoader loader = engine.getLoader();
 
         O model = (O) loader.loadBuffered(new File(path));
+
+        CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
+        CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
+        pt.inevo.encontra.query.Path modelPath = query.from(engine.getModelClass()).get(engine.getType());
+        query = query.where(cb.similar(modelPath, model)).distinct(true).limit(20);
+
+        ResultSet<E> results = engine.search(query);
+
+        System.out.println("Number of retrieved elements: " + results.getSize());
+        for (Result<E> r : results) {
+            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
+            System.out.println("Similarity: " + r.getScore());
+        }
+        return "see_what_to_return";
+    }
+
+
+    @POST
+    //@Produces(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Path("/{type}/similar")
+    public String similar(@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
+                          @FormDataParam("file") FormDataContentDisposition fileDetail)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+
+        ClutchAbstractEngine engine = null;
+
+        if(type.equals("image")){
+            engine = new ClutchImageEngine();
+        }
+        else if (type.equals("3d")){
+            engine = new ClutchThreedEngine();
+        }
+
+        System.out.println("Creating a knn query...");
+
+        ModelLoader loader = engine.getLoader();
+
+        String filename = fileDetail.getFileName();
+        String extension = filename.substring(filename.lastIndexOf("."));
+
+        //Queremos inserir também na nossa DB?
+        O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
+
+        CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
+        CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
+        pt.inevo.encontra.query.Path modelPath = query.from(engine.getModelClass()).get(engine.getType());
+        query = query.where(cb.similar(modelPath, model)).distinct(true).limit(20);
+
+        ResultSet<E> results = engine.search(query);
+
+        System.out.println("Number of retrieved elements: " + results.getSize());
+        for (Result<E> r : results) {
+            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
+            System.out.println("Similarity: " + r.getScore());
+        }
+        return "see_what_to_return";
+    }
+
+    @POST
+    //@Produces(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Path("/{type}/{descriptor}/similar")
+    public String similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @FormDataParam("file") InputStream uploadedInputStream,
+                          @FormDataParam("file") FormDataContentDisposition fileDetail)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+
+        ClutchAbstractEngine engine = null;
+
+        if(type.equals("image")){
+            engine = new ClutchImageEngine(descriptor);
+        }
+        else if (type.equals("3d")){
+            engine = new ClutchThreedEngine(descriptor);
+        }
+
+        System.out.println("Creating a knn query...");
+
+        ModelLoader loader = engine.getLoader();
+
+        String filename = fileDetail.getFileName();
+        String extension = filename.substring(filename.lastIndexOf("."));
+
+        //Queremos inserir também na nossa DB?
+        O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
         CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
