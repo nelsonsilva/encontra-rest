@@ -248,7 +248,6 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         String filename = fileDetail.getFileName();
         String extension = filename.substring(filename.lastIndexOf("."));
 
-        //Queremos inserir também na nossa DB?
         O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
@@ -265,4 +264,62 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         }
         return "see_what_to_return";
     }
+
+
+    @POST
+     @Consumes(MediaType.MULTIPART_FORM_DATA)
+     @Path("/{type}/storeIndex")
+     public String storeIndex (@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
+                               @FormDataParam("file") FormDataContentDisposition fileDetail) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+
+        ClutchAbstractEngine engine = null;
+
+        if(type.equals("image")){
+            engine = new ClutchImageEngine();
+        }
+        else if (type.equals("3d")){
+            engine = new ClutchThreedEngine();
+        }
+
+        System.out.println("Loading some objects to the test indexes...");
+        ModelLoader loader = engine.getLoader();
+
+        String filename = fileDetail.getFileName();
+        String extension = filename.substring(filename.lastIndexOf("."));
+
+        E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
+        engine.insert(model);
+
+        return "see_what_to_return";
+    }
+
+
+    @POST
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Path("/{type}/{descriptor}/storeIndex")
+    public String storeIndex(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @FormDataParam("file") InputStream uploadedInputStream,
+                              @FormDataParam("file") FormDataContentDisposition fileDetail) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+
+        ClutchAbstractEngine engine = null;
+
+        if(type.equals("image")){
+            engine = new ClutchImageEngine(descriptor);
+        }
+        else if (type.equals("3d")){
+            engine = new ClutchThreedEngine(descriptor);
+        }
+
+        System.out.println("Loading some objects to the test indexes...");
+        ModelLoader loader = engine.getLoader();
+
+        String filename = fileDetail.getFileName();
+        String extension = filename.substring(filename.lastIndexOf("."));
+
+        E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
+        engine.insert(model);
+
+        return "see_what_to_return";
+    }
+
+
 }

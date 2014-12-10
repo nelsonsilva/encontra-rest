@@ -74,9 +74,25 @@ public class SearchTest extends JerseyTest {
                 .field("filename", "m0.off");
         multipart.setMediaType(MediaType.MULTIPART_FORM_DATA_TYPE);
 
-                multipart.bodyPart(filePart);
+        multipart.bodyPart(filePart);
 
         final Response responseMsg = target().path("search/3d/similar").request().post(Entity.entity(multipart, multipart.getMediaType()));
+
+    }
+
+    @Test
+    public void testIndexFile() throws IOException {
+
+        // MediaType of the body part will be derived from the file.
+        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File("C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off"));
+
+        final FormDataMultiPart multipart = new FormDataMultiPart()
+                .field("filename", "m0.off");
+        multipart.setMediaType(MediaType.MULTIPART_FORM_DATA_TYPE);
+
+        multipart.bodyPart(filePart);
+
+        final Response responseMsg = target().path("search/3d/storeIndex").request().post(Entity.entity(multipart, multipart.getMediaType()));
 
     }
 
