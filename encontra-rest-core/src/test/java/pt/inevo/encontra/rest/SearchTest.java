@@ -28,6 +28,8 @@ import static org.junit.Assert.assertEquals;
 
 public class SearchTest extends JerseyTest {
 
+    protected static String MODEL = "/m0.off";
+
     @Override
     protected URI getBaseUri() {
         return UriBuilder.fromUri(super.getBaseUri()).path("multipart-webapp").build();
@@ -58,17 +60,21 @@ public class SearchTest extends JerseyTest {
 
     @Test
     public void testSimilar() {
+        String modelName = getClass().getResource(MODEL).getFile();
+
     //    final String responseMsg = target().path("search/image/similar").queryParam("path", "C:\\Users\\João\\Desktop\\img.png").request().get(String.class);
-        final String responseMsg = target().path("search/3d/similar").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off").request().get(String.class);
-    //    final String responseMsg = target().path("search/3d/a3/similar").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off").request().get(String.class);
+        final String responseMsg = target().path("search/3d/similar").queryParam("path", modelName).request().get(String.class);
+    //    final String responseMsg = target().path("search/3d/a3/similar").queryParam("path", modelName).request().get(String.class);
 
     }
 
     @Test
     public void testSimilarFile() throws IOException {
 
+        String modelName = getClass().getResource(MODEL).getFile();
+
         // MediaType of the body part will be derived from the file.
-        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File("C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off"));
+        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File(modelName));
 
         final FormDataMultiPart multipart = new FormDataMultiPart()
                 .field("filename", "m0.off");
@@ -83,8 +89,10 @@ public class SearchTest extends JerseyTest {
     @Test
     public void testIndexFile() throws IOException {
 
+        String modelName = getClass().getResource(MODEL).getFile();
+
         // MediaType of the body part will be derived from the file.
-        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File("C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off"));
+        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File(modelName));
 
         final FormDataMultiPart multipart = new FormDataMultiPart()
                 .field("filename", "m0.off");
