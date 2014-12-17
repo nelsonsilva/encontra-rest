@@ -29,6 +29,14 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 @Path("search")
 public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E extends IEntity<Long>, O extends Object> {
 
+    //Test
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/hello")
+    public String hello(){
+        return "hello world";
+    }
+
     /**
      * This method stores the indexes of a specific descriptor and the objects of each ImageModel in the FS
      * Currently working for images and btree index

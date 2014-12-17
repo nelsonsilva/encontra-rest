@@ -2,6 +2,13 @@ package pt.inevo.encontra.rest.app;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
+import org.glassfish.jersey.jetty.JettyHttpContainerFactory;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
+import org.glassfish.jersey.server.ResourceConfig;
+import pt.inevo.encontra.rest.Search;
+
+import javax.ws.rs.core.UriBuilder;
+import java.net.URI;
 
 /**
  * This class launches the web application in an embedded Jetty container. This is the entry point to your application. The Java
@@ -17,23 +24,20 @@ public class Main {
             webPort = "8080";
         }
 
-        final Server server = new Server(Integer.valueOf(webPort));
-        final WebAppContext root = new WebAppContext();
+        URI baseUri = UriBuilder.fromUri("http://localhost/").port(Integer.valueOf(webPort)).build();
+        ResourceConfig config = new ResourceConfig(Search.class);
+        config.register(MultiPartFeature.class);
+        Server server = JettyHttpContainerFactory.createServer(baseUri, config);
 
+        /* Falha se adicionar isto
+        WebAppContext root = new WebAppContext();
         root.setContextPath("/");
-        // Parent loader priority is a class loader setting that Jetty accepts.
-        // By default Jetty will behave like most web containers in that it will
-        // allow your application to replace non-server libraries that are part of the
-        // container. Setting parent loader priority to true changes this behavior.
-        // Read more here: http://wiki.eclipse.org/Jetty/Reference/Jetty_Classloading
         root.setParentLoaderPriority(true);
-
-        final String webappDirLocation = "src/main/webapp/";
+        final String webappDirLocation = "encontra-rest/encontra-rest-app/src/main/webapp/";
         root.setDescriptor(webappDirLocation + "/WEB-INF/web.xml");
-        root.setResourceBase(webappDirLocation);
-
+        root.setResourceBase("encontra-rest/encontra-rest-core/src/main/pt/inevo/encontra/rest/");
         server.setHandler(root);
-
+        */
         server.start();
         server.join();
     }
