@@ -44,7 +44,7 @@ public class SearchTest extends JerseyTest {
     protected void configureClient(ClientConfig config) {
         config.register(MultiPartFeature.class);
     }
-/*
+
     @Test
     public void testStorage() {
         final String responseMsg = target().path("search/3d/storeIndex").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples").request().get(String.class);
@@ -95,5 +95,5 @@ public class SearchTest extends JerseyTest {
         final Response responseMsg = target().path("search/3d/storeIndex").request().post(Entity.entity(multipart, multipart.getMediaType()));
 
     }
-*/
+
 }
