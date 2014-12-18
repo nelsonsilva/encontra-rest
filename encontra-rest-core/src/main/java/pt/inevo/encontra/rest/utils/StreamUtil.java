@@ -25,4 +25,20 @@ public class StreamUtil {
         return tempFile;
     }
 
+    /*
+    File fl = null;
+    if(save)
+    {
+        fl = new File(filename, extension);
+    }
+    else{
+        fl = File.createTempFile(PREFIX, extension);
+        fl.deleteOnExit();
+    }
+    try (FileOutputStream out = new FileOutputStream(fl)) {
+        IOUtils.copy(in, out);
+    }
+    return fl;
+    */
+
 }

@@ -1,5 +1,8 @@
 package pt.inevo.encontra.rest;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import pt.inevo.encontra.common.Result;
 import pt.inevo.encontra.common.ResultSet;
 import pt.inevo.encontra.descriptors.DescriptorExtractor;
@@ -21,13 +24,19 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 @Path("search")
 public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E extends IEntity<Long>, O extends Object> {
+
+    ClutchAbstractEngine engine = null;
+    //Map<String, ClutchAbstractEngine> enginesMap;
 
     //Test
     @GET
@@ -52,10 +61,8 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
      */
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    @Path("/{type}/storeIndex")
-    public String storeIndex (@PathParam("type") String type, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
-
-        ClutchAbstractEngine engine = null;
+    @Path("/{type}/index")
+    public String storeIndex (@PathParam("type") String type, @DefaultValue("data/models/") @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine();
@@ -64,9 +71,11 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine();
         }
 
-
         System.out.println("Loading some objects to the test indexes...");
         ModelLoader loader = engine.getLoader();
+
+
+
         loader.setModelsPath(path);
         loader.load();
         Iterator<File> it = loader.iterator();
@@ -76,6 +85,8 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             E ml = (E) loader.loadModel(f);
             engine.insert(ml);
         }
+
+        engine.closeIndex();
         return "see_what_to_return";
     }
 
@@ -91,11 +102,10 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
      * @throws InstantiationException
      */
     @GET
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{type}/similar")
-    public String similar(@PathParam("type") String type, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    public String similar(@PathParam("type") String type, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, JSONException {
 
-        ClutchAbstractEngine engine = null;
         if(type.equals("image")){
             engine = new ClutchImageEngine<ImageModel, D>();
         }
@@ -118,19 +128,17 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         ResultSet<E> results = engine.search(query);
 
         System.out.println("Number of retrieved elements: " + results.getSize());
-        for (Result<E> r : results) {
-            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
-            System.out.println("Similarity: " + r.getScore());
-        }
-        return "see_what_to_return";
+
+        List<JsonReturnObject> fullJson = processTopResults(results);
+
+        engine.closeIndex();
+        return fullJson.toString();
     }
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    @Path("/{type}/{descriptor}/storeIndex")
-    public String storeIndex (@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-
-        ClutchAbstractEngine engine = null;
+    @Path("/{type}/{descriptor}/index")
+    public String storeIndex (@PathParam("type") String type, @DefaultValue("data/models/") @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine(descriptor);
@@ -150,16 +158,14 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             E ml = (E) loader.loadModel(f);
             engine.insert(ml);
         }
+        engine.closeIndex();
         return "see_what_to_return";
     }
 
     @GET
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{type}/{descriptor}/similar")
-    public String similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
-
-
-        ClutchAbstractEngine engine = null;
+    public String similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, JSONException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine(descriptor);
@@ -182,23 +188,21 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         ResultSet<E> results = engine.search(query);
 
         System.out.println("Number of retrieved elements: " + results.getSize());
-        for (Result<E> r : results) {
-            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
-            System.out.println("Similarity: " + r.getScore());
-        }
-        return "see_what_to_return";
+
+        List<JsonReturnObject> fullJson = processTopResults(results);
+
+        engine.closeIndex();
+        return fullJson.toString();
     }
 
 
     @POST
-    //@Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Path("/{type}/similar")
     public String similar(@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
                           @FormDataParam("file") FormDataContentDisposition fileDetail)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
-
-        ClutchAbstractEngine engine = null;
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, JSONException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine();
@@ -225,22 +229,20 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         ResultSet<E> results = engine.search(query);
 
         System.out.println("Number of retrieved elements: " + results.getSize());
-        for (Result<E> r : results) {
-            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
-            System.out.println("Similarity: " + r.getScore());
-        }
-        return "see_what_to_return";
+
+        List<JsonReturnObject> fullJson = processTopResults(results);
+
+        engine.closeIndex();
+        return fullJson.toString();
     }
 
     @POST
-    //@Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Path("/{type}/{descriptor}/similar")
     public String similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @FormDataParam("file") InputStream uploadedInputStream,
                           @FormDataParam("file") FormDataContentDisposition fileDetail)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
-
-        ClutchAbstractEngine engine = null;
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, JSONException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine(descriptor);
@@ -266,21 +268,19 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         ResultSet<E> results = engine.search(query);
 
         System.out.println("Number of retrieved elements: " + results.getSize());
-        for (Result<E> r : results) {
-            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
-            System.out.println("Similarity: " + r.getScore());
-        }
-        return "see_what_to_return";
+
+        List<JsonReturnObject> fullJson = processTopResults(results);
+
+        engine.closeIndex();
+        return fullJson.toString();
     }
 
 
     @POST
      @Consumes(MediaType.MULTIPART_FORM_DATA)
-     @Path("/{type}/storeIndex")
+     @Path("/{type}/index")
      public String storeIndex (@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
                                @FormDataParam("file") FormDataContentDisposition fileDetail) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
-
-        ClutchAbstractEngine engine = null;
 
         if(type.equals("image")){
             engine = new ClutchImageEngine();
@@ -297,18 +297,16 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
 
         E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
         engine.insert(model);
-
+        engine.closeIndex();
         return "see_what_to_return";
     }
 
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Path("/{type}/{descriptor}/storeIndex")
+    @Path("/{type}/{descriptor}/index")
     public String storeIndex(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @FormDataParam("file") InputStream uploadedInputStream,
                               @FormDataParam("file") FormDataContentDisposition fileDetail) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
-
-        ClutchAbstractEngine engine = null;
 
         if(type.equals("image")){
             engine = new ClutchImageEngine(descriptor);
@@ -325,9 +323,22 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
 
         E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
         engine.insert(model);
-
+        engine.closeIndex();
         return "see_what_to_return";
     }
 
 
+    public List<JsonReturnObject> processTopResults(ResultSet<E> results) throws JSONException {
+        List<JsonReturnObject> fullJson = new ArrayList();
+        for (Result<E> r : results) {
+            String jsonString = (r.getResultObject().toString()).replace("\\", "\\\\");
+            JSONObject jsonObj = new JSONObject (jsonString);
+
+            JsonReturnObject jsonResult = new JsonReturnObject((Long) jsonObj.get("id"), (String) jsonObj.get("title"), r.getScore());
+            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
+            System.out.println("Similarity: " + r.getScore());
+            fullJson.add(jsonResult);
+        }
+        return fullJson;
+    }
 }

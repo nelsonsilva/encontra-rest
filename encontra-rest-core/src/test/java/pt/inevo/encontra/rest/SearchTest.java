@@ -49,10 +49,10 @@ public class SearchTest extends JerseyTest {
 
     @Test
     public void testStorage() {
-        final String responseMsg = target().path("search/3d/storeIndex").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples").request().get(String.class);
-        //final String responseMsg = target().path("search/3d/a3/storeIndex").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples").request().get(String.class);
+        final String responseMsg = target().path("search/3d/index").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples").request().get(String.class);
+        //final String responseMsg = target().path("search/3d/a3/index").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples").request().get(String.class);
 
-       // final String responseMsg = target().path("search/image/storeIndex").queryParam("path", "C:\\Users\\João\\Desktop\\imagens").request().get(String.class);
+       // final String responseMsg = target().path("search/image/index").queryParam("path", "C:\\Users\\João\\Desktop\\imagens").request().get(String.class);
     }
 
     //Nao funciona quando sao seguidos, devido ao lock do Lucene
@@ -65,7 +65,7 @@ public class SearchTest extends JerseyTest {
     //    final String responseMsg = target().path("search/image/similar").queryParam("path", "C:\\Users\\João\\Desktop\\img.png").request().get(String.class);
         final String responseMsg = target().path("search/3d/similar").queryParam("path", modelName).request().get(String.class);
     //    final String responseMsg = target().path("search/3d/a3/similar").queryParam("path", modelName).request().get(String.class);
-
+        System.out.println(responseMsg);
     }
 
     @Test

@@ -71,4 +71,6 @@ public abstract class ClutchAbstractEngine<O extends IEntity, D extends Descript
         this.type = type;
     }
 
+    public abstract void closeIndex() throws IOException;   //It is important or else the write.lock would prevent further requests
+
 }

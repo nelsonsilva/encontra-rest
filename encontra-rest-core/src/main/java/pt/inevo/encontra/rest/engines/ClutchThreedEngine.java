@@ -99,4 +99,8 @@ public class ClutchThreedEngine<O extends IEntity, D extends DescriptorExtractor
         this.type = type;
     }
 
+    public void closeIndex() throws IOException {
+        index.close();
+    }
+
 }
