@@ -13,32 +13,23 @@ import java.io.InputStream;
 
 public class StreamUtil {
 
-    public static final String PREFIX = "stream2file";
-    public static final String SUFFIX = ".tmp";
+    public static File stream2file (InputStream in, String filename, Boolean save) throws IOException {
+        int dotIndex = filename.lastIndexOf(".");
+        String name = filename.substring(0,dotIndex);
+        String extension = filename.substring(dotIndex);
 
-    public static File stream2file (InputStream in, String extension) throws IOException {
-        final File tempFile = File.createTempFile(PREFIX, extension);
-        tempFile.deleteOnExit();
-        try (FileOutputStream out = new FileOutputStream(tempFile)) {
+        File file;
+        if(!save) {
+            file = File.createTempFile(name, extension);
+            file.deleteOnExit();
+        }
+        else{
+            file = new File("data/models/"+filename);
+        }
+
+        try (FileOutputStream out = new FileOutputStream(file)) {
             IOUtils.copy(in, out);
         }
-        return tempFile;
+        return file;
     }
-
-    /*
-    File fl = null;
-    if(save)
-    {
-        fl = new File(filename, extension);
-    }
-    else{
-        fl = File.createTempFile(PREFIX, extension);
-        fl.deleteOnExit();
-    }
-    try (FileOutputStream out = new FileOutputStream(fl)) {
-        IOUtils.copy(in, out);
-    }
-    return fl;
-    */
-
 }

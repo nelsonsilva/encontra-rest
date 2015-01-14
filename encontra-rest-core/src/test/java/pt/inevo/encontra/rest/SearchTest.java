@@ -100,7 +100,7 @@ public class SearchTest extends JerseyTest {
 
         multipart.bodyPart(filePart);
 
-        final Response responseMsg = target().path("search/3d/storeIndex").request().post(Entity.entity(multipart, multipart.getMediaType()));
+        final Response responseMsg = target().path("search/3d/index").request().post(Entity.entity(multipart, multipart.getMediaType()));
 
     }
 

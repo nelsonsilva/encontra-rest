@@ -36,15 +36,6 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E extends IEntity<Long>, O extends Object> {
 
     ClutchAbstractEngine engine = null;
-    //Map<String, ClutchAbstractEngine> enginesMap;
-
-    //Test
-    @GET
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("/hello")
-    public String hello(){
-        return "hello world";
-    }
 
     /**
      * This method stores the indexes of a specific descriptor and the objects of each ImageModel in the FS
@@ -71,25 +62,21 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine();
         }
 
-        System.out.println("Loading some objects to the test indexes...");
         ModelLoader loader = engine.getLoader();
-
-
 
         loader.setModelsPath(path);
         loader.load();
         Iterator<File> it = loader.iterator();
-
-        for (int i = 0; it.hasNext(); i++) {
+        int i;
+        for (i = 0; it.hasNext(); i++) {
             File f = it.next();
             E ml = (E) loader.loadModel(f);
             engine.insert(ml);
         }
 
         engine.closeIndex();
-        return "see_what_to_return";
+        return "Number of models loaded: " + i;
     }
-
 
     /**
      *
@@ -113,8 +100,6 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         {
             engine = new ClutchThreedEngine<ThreedModel,D>();
         }
-
-        System.out.println("Creating a knn query...");
 
         ModelLoader loader = engine.getLoader();
 
@@ -147,19 +132,19 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine(descriptor);
         }
 
-        System.out.println("Loading some objects to the test indexes...");
         ModelLoader loader = engine.getLoader();
         loader.setModelsPath(path);
         loader.load();
         Iterator<File> it = loader.iterator();
 
-        for (int i = 0; it.hasNext(); i++) {
+        int i;
+        for (i = 0; it.hasNext(); i++) {
             File f = it.next();
             E ml = (E) loader.loadModel(f);
             engine.insert(ml);
         }
         engine.closeIndex();
-        return "see_what_to_return";
+        return "Number of models loaded: " + i;
     }
 
     @GET
@@ -173,8 +158,6 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         else if (type.equals("3d")){
             engine = new ClutchThreedEngine(descriptor);
         }
-
-        System.out.println("Creating a knn query...");
 
         ModelLoader loader = engine.getLoader();
 
@@ -211,15 +194,11 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine();
         }
 
-        System.out.println("Creating a knn query...");
-
         ModelLoader loader = engine.getLoader();
 
         String filename = fileDetail.getFileName();
-        String extension = filename.substring(filename.lastIndexOf("."));
 
-        //Queremos inserir também na nossa DB?
-        O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
+        O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, filename, false));
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
         CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
@@ -251,14 +230,11 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine(descriptor);
         }
 
-        System.out.println("Creating a knn query...");
-
         ModelLoader loader = engine.getLoader();
 
         String filename = fileDetail.getFileName();
-        String extension = filename.substring(filename.lastIndexOf("."));
 
-        O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
+        O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, filename, false));
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
         CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
@@ -276,7 +252,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
     }
 
 
-    @POST
+     @POST
      @Consumes(MediaType.MULTIPART_FORM_DATA)
      @Path("/{type}/index")
      public String storeIndex (@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
@@ -289,16 +265,14 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine();
         }
 
-        System.out.println("Loading some objects to the test indexes...");
         ModelLoader loader = engine.getLoader();
-
         String filename = fileDetail.getFileName();
-        String extension = filename.substring(filename.lastIndexOf("."));
 
-        E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
+
+        E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, filename, true));
         engine.insert(model);
         engine.closeIndex();
-        return "see_what_to_return";
+        return "Model Indexed";
     }
 
 
@@ -315,16 +289,14 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine(descriptor);
         }
 
-        System.out.println("Loading some objects to the test indexes...");
         ModelLoader loader = engine.getLoader();
 
         String filename = fileDetail.getFileName();
-        String extension = filename.substring(filename.lastIndexOf("."));
 
-        E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
+        E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, filename, true));
         engine.insert(model);
         engine.closeIndex();
-        return "see_what_to_return";
+        return "Model Indexed";
     }
 
 
