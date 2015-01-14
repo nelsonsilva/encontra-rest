@@ -36,6 +36,7 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E extends IEntity<Long>, O extends Object> {
 
     ClutchAbstractEngine engine = null;
+    static final String DEFAULTMODELPATH = "data/models";
 
     /**
      * This method stores the indexes of a specific descriptor and the objects of each ImageModel in the FS
@@ -53,7 +54,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{type}/index")
-    public String storeIndex (@PathParam("type") String type, @DefaultValue("data/models/") @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    public String storeIndex (@PathParam("type") String type, @DefaultValue(DEFAULTMODELPATH) @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine();
@@ -123,7 +124,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{type}/{descriptor}/index")
-    public String storeIndex (@PathParam("type") String type, @DefaultValue("data/models/") @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    public String storeIndex (@PathParam("type") String type, @DefaultValue(DEFAULTMODELPATH) @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine(descriptor);
