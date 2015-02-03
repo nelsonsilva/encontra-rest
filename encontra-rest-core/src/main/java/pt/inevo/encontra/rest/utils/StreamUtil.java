@@ -6,10 +6,7 @@ package pt.inevo.encontra.rest.utils;
  */
 import org.apache.commons.io.IOUtils;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 public class StreamUtil {
 
@@ -32,4 +29,35 @@ public class StreamUtil {
         }
         return file;
     }
+
+    public static File string2file (String in, String filename, Boolean save) throws IOException {
+        int dotIndex = filename.lastIndexOf(".");
+        String name = filename.substring(0,dotIndex);
+        String extension = filename.substring(dotIndex);
+
+        File file;
+        if(!save) {
+            file = File.createTempFile(name, extension);
+            file.deleteOnExit();
+        }
+        else{
+            file = new File("data/models/"+filename);
+        }
+
+        FileOutputStream fop = new FileOutputStream(file);
+
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+
+        // get the content in bytes
+        byte[] contentInBytes = in.getBytes();
+
+        fop.write(contentInBytes);
+        fop.flush();
+        fop.close();
+
+        return file;
+    }
+
 }

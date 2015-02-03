@@ -27,17 +27,21 @@ public class Main {
         URI baseUri = UriBuilder.fromUri("http://localhost/").port(Integer.valueOf(webPort)).build();
         ResourceConfig config = new ResourceConfig(Search.class);
         config.register(MultiPartFeature.class);
-        Server server = JettyHttpContainerFactory.createServer(baseUri, config);
+        Server server = JettyHttpContainerFactory.createServer(baseUri, config, false);
+       // server.stop();
 
-        /* Falha se adicionar isto
         WebAppContext root = new WebAppContext();
-        root.setContextPath("/");
-        root.setParentLoaderPriority(true);
         final String webappDirLocation = "encontra-rest/encontra-rest-app/src/main/webapp/";
         root.setDescriptor(webappDirLocation + "/WEB-INF/web.xml");
-        root.setResourceBase("encontra-rest/encontra-rest-core/src/main/pt/inevo/encontra/rest/");
+        System.out.println();
+        System.out.println(root.getDescriptor());
+        root.setResourceBase(webappDirLocation);
+        System.out.println(root.getResourceBase());
+        root.setContextPath("/");
+        System.out.println(root.getContextPath());
+        root.setParentLoaderPriority(true);
         server.setHandler(root);
-        */
+
         server.start();
         server.join();
     }

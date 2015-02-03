@@ -18,6 +18,7 @@ import org.glassfish.jersey.test.JerseyTest;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -28,7 +29,7 @@ import static org.junit.Assert.assertEquals;
 
 public class SearchTest extends JerseyTest {
 
-    protected static String MODEL = "/m0.off";
+    protected static String MODEL = "/ship.stl";
 
     @Override
     protected URI getBaseUri() {
@@ -59,12 +60,25 @@ public class SearchTest extends JerseyTest {
     //TODO Tem que se fechar o writer algures
 
     @Test
-    public void testSimilar() {
+    public void testSimilar() throws IOException {
         String modelName = getClass().getResource(MODEL).getFile();
 
+
+        FileInputStream fis = new FileInputStream("C:/block100.stl");
+        StringBuilder builder = new StringBuilder();
+        int ch;
+        while((ch = fis.read()) != -1){
+            builder.append((char)ch);
+        }
+        String stringFile = builder.toString();
+
+
+
     //    final String responseMsg = target().path("search/image/similar").queryParam("path", "C:\\Users\\João\\Desktop\\img.png").request().get(String.class);
-        final String responseMsg = target().path("search/3d/similar").queryParam("path", modelName).request().get(String.class);
-    //    final String responseMsg = target().path("search/3d/a3/similar").queryParam("path", modelName).request().get(String.class);
+      //  final String responseMsg = target().path("search/3d/similar").queryParam("path", modelName).request().get(String.class);
+        final String responseMsg = target().path("search/3d/similar").queryParam("path", "block100.stl").queryParam("file", stringFile).request().get(String.class);
+
+        //    final String responseMsg = target().path("search/3d/a3/similar").queryParam("path", modelName).request().get(String.class);
         System.out.println(responseMsg);
     }
 

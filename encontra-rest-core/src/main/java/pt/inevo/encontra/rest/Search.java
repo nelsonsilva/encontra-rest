@@ -1,5 +1,6 @@
 package pt.inevo.encontra.rest;
 
+import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,6 +38,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
 
     ClutchAbstractEngine engine = null;
     static final String DEFAULTMODELPATH = "data/models";
+    static final String DEFAULTFILESTRING = "";
 
     /**
      * This method stores the indexes of a specific descriptor and the objects of each ImageModel in the FS
@@ -92,7 +94,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{type}/similar")
-    public String similar(@PathParam("type") String type, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, JSONException {
+    public String similar(@PathParam("type") String type, @QueryParam("path") String path, @DefaultValue(DEFAULTFILESTRING) @QueryParam("file") String fileString) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, JSONException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine<ImageModel, D>();
@@ -103,8 +105,18 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         }
 
         ModelLoader loader = engine.getLoader();
+        File f = null;
 
-        O model = (O) loader.loadBuffered(new File(path));
+        if (fileString.equals(""))
+        {
+            f = new File(path);
+        }
+        else
+        {
+            f = StreamUtil.string2file(fileString,path,false);
+        }
+
+        O model = (O) loader.loadBuffered(f);
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
         CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
@@ -151,7 +163,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{type}/{descriptor}/similar")
-    public String similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, JSONException {
+    public String similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path, @DefaultValue(DEFAULTFILESTRING) @QueryParam("file") String fileString) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, JSONException {
 
         if(type.equals("image")){
             engine = new ClutchImageEngine(descriptor);
@@ -161,8 +173,18 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         }
 
         ModelLoader loader = engine.getLoader();
+        File f = null;
 
-        O model = (O) loader.loadBuffered(new File(path));
+        if (fileString.equals(""))
+        {
+            f = new File(path);
+        }
+        else
+        {
+            f = StreamUtil.string2file(fileString,path,false);
+        }
+
+        O model = (O) loader.loadBuffered(f);
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
         CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());

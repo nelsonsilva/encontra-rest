@@ -49,7 +49,7 @@ public class ClutchThreedEngine<O extends IEntity, D extends DescriptorExtractor
         D descriptor;
         if (desc == null){
             desc = "";
-            descriptor = (D) new D3();
+            descriptor = (D) new D2();
         }
         else {
             ThreedDescriptorMap descMap = ThreedDescriptorMap.valueOf(desc);
