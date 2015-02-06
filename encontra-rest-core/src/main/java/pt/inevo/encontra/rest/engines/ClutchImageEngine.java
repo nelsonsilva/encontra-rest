@@ -94,7 +94,7 @@ public class ClutchImageEngine<O extends IEntity, D extends DescriptorExtractor>
     }
 
     public void closeIndex() throws IOException {
-        index.close();
+        this.index.close();
     }
 
 }
