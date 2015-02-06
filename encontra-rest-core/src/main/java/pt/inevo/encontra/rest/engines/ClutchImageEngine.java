@@ -90,6 +90,7 @@ public class ClutchImageEngine<O extends IEntity, D extends DescriptorExtractor>
     }
 
     public void closeIndex() throws IOException {
+        if(lucIndex != null)
         lucIndex.close();
     }
 
