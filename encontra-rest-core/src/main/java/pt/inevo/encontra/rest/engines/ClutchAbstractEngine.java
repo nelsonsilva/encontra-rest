@@ -29,9 +29,8 @@ public abstract class ClutchAbstractEngine<O extends IEntity, D extends Descript
     protected ModelLoader loader;
     protected String type;
     protected Class modelClass;
-    protected String desc;
 
-    protected LuceneIndex index;
+    protected LuceneIndex lucIndex;
 
 
     public ClutchAbstractEngine() {
@@ -39,8 +38,6 @@ public abstract class ClutchAbstractEngine<O extends IEntity, D extends Descript
         setIndexedObjectFactory(new SimpleIndexedObjectFactory());
         setResultProvider(new DefaultResultProvider());
     }
-
-    public abstract void setEngine() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException;
 
     @Override
     protected Result<O> getResultObject(Result<IEntry> entryResult) {
@@ -71,6 +68,6 @@ public abstract class ClutchAbstractEngine<O extends IEntity, D extends Descript
         this.type = type;
     }
 
-    public void closeIndex() throws IOException {this.index.close();}
+    public abstract void closeIndex() throws IOException;   //It is important or else the write.lock would prevent further requests
 
 }

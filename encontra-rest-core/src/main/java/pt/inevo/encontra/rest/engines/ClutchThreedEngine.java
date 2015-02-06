@@ -31,41 +31,37 @@ import java.lang.reflect.InvocationTargetException;
 public class ClutchThreedEngine<O extends IEntity, D extends DescriptorExtractor> extends ClutchAbstractEngine<O,D> {
 
 
-    public ClutchThreedEngine(String descriptor) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public ClutchThreedEngine(String descString) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         super();
-        desc = descriptor.toUpperCase();
-        setEngine();
-    }
 
-    public ClutchThreedEngine() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        super();
-        setEngine();
-    }
-
-    public  void setEngine() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         loader = new ThreedModelLoader();
         type = "threedmodel";
         modelClass = ThreedModel.class;
         D descriptor;
-        if (desc == null){
-            desc = "";
+        if (descString == null){
+            descString = "";
             descriptor = (D) new D2();
         }
         else {
-            ThreedDescriptorMap descMap = ThreedDescriptorMap.valueOf(desc);
+            descString = descString.toUpperCase();
+            ThreedDescriptorMap descMap = ThreedDescriptorMap.valueOf(descString);
             Class<?> descriptorClass = descMap.getFeatureClass();
             descriptor = (D) descriptorClass.getConstructor().newInstance();
         }
 
-        String indexPath = "data/"+type+"/indexes/"+desc+"/";
+        String indexPath = "data/"+type+"/indexes/"+descString+"/";
         storage = new SimpleFSObjectStorage(modelClass, "data/"+type+"/objects/");
         SimpleSearcher<IndexedObject> searcher = new SimpleSearcher();
-        index = new LuceneIndex(indexPath, Histogram.class);
+        lucIndex = new LuceneIndex(indexPath, Histogram.class);
         searcher.setDescriptorExtractor(descriptor);
-        searcher.setIndex(index);
+        searcher.setIndex(lucIndex);
         searcher.setQueryProcessor(new QueryProcessorDefaultImpl());
         searcher.setResultProvider(new DefaultResultProvider());
         setSearcher(type, searcher);
+    }
+
+    public ClutchThreedEngine() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        this(null);
     }
 
     @Override
@@ -97,6 +93,10 @@ public class ClutchThreedEngine<O extends IEntity, D extends DescriptorExtractor
     @Override
     public void setType(String type) {
         this.type = type;
+    }
+
+    public void closeIndex() throws IOException {
+        lucIndex.close();
     }
 
 }
