@@ -95,8 +95,9 @@ public class ClutchThreedEngine<O extends IEntity, D extends DescriptorExtractor
         this.type = type;
     }
 
+    @Override
     public void closeIndex() throws IOException {
-        lucIndex.close();
+        if(lucIndex != null) lucIndex.close();
     }
 
 }
