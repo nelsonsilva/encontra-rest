@@ -1,9 +1,13 @@
 package pt.inevo.encontra.rest;
 
+import com.wordnik.swagger.annotations.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pt.inevo.encontra.common.Result;
 import pt.inevo.encontra.common.ResultSet;
 import pt.inevo.encontra.descriptors.DescriptorExtractor;
 import pt.inevo.encontra.index.search.AbstractSearcher;
+import pt.inevo.encontra.index.search.Searcher;
 import pt.inevo.encontra.query.CriteriaQuery;
 import pt.inevo.encontra.query.criteria.CriteriaBuilderImpl;
 import pt.inevo.encontra.rest.engines.ClutchAbstractEngine;
@@ -17,17 +21,30 @@ import pt.inevo.encontra.threed.model.ThreedModel;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
+
 @Path("search")
-public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E extends IEntity<Long>, O extends Object> {
+@Api(value = "/search", description = "Query operations")
+public class Search {
+
+    public static final Logger log = LoggerFactory.getLogger(Search.class);
+
+    public static Map<String, ClutchAbstractEngine> ENGINES = new HashMap<>();
+    static {
+        ENGINES.put("image", new ClutchImageEngine());
+        ENGINES.put("3d", new ClutchThreedEngine());
+    }
 
     /**
      * This method stores the indexes of a specific descriptor and the objects of each ImageModel in the FS
@@ -45,30 +62,31 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{type}/storeIndex")
-    public String storeIndex (@PathParam("type") String type, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    @ApiOperation(value = "Index from filesystem")
+    @ApiResponses(value = {@ApiResponse(code = 404, message = "Path not found")})
+    public Response storeIndex(
+            @ApiParam(value = "Type", required = true) @PathParam("type") String type,
+            @ApiParam(value = "Path", required = true) @QueryParam("path") String path) {
 
-        ClutchAbstractEngine engine = null;
+        ClutchAbstractEngine engine = ENGINES.get(type);
 
-        if(type.equals("image")){
-            engine = new ClutchImageEngine();
+        log.info("Loading some objects to the test indexes...");
+
+        try {
+            ModelLoader loader = engine.getLoader();
+            loader.setModelsPath(path);
+            loader.load();
+            Iterator<File> it = loader.iterator();
+
+            for (int i = 0; it.hasNext(); i++) {
+                File f = it.next();
+                IEntity ml = loader.loadModel(f);
+                engine.insert(ml);
+            }
+        } catch (IOException e) {
+            throw new NotFoundException(e);
         }
-        else if (type.equals("3d")){
-            engine = new ClutchThreedEngine();
-        }
-
-
-        System.out.println("Loading some objects to the test indexes...");
-        ModelLoader loader = engine.getLoader();
-        loader.setModelsPath(path);
-        loader.load();
-        Iterator<File> it = loader.iterator();
-
-        for (int i = 0; it.hasNext(); i++) {
-            File f = it.next();
-            E ml = (E) loader.loadModel(f);
-            engine.insert(ml);
-        }
-        return "see_what_to_return";
+        return Response.ok().build();
     }
 
 
@@ -85,34 +103,32 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{type}/similar")
-    public String similar(@PathParam("type") String type, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    public String similar(@PathParam("type") String type, @QueryParam("path") String path) {
 
-        ClutchAbstractEngine engine = null;
-        if(type.equals("image")){
-            engine = new ClutchImageEngine<ImageModel, D>();
-        }
-        else if (type.equals("3d"))
-        {
-            engine = new ClutchThreedEngine<ThreedModel,D>();
-        }
+        ClutchAbstractEngine engine = ENGINES.get(type);
 
-        System.out.println("Creating a knn query...");
+        log.info("Creating a knn query...");
 
         ModelLoader loader = engine.getLoader();
 
-        O model = (O) loader.loadBuffered(new File(path));
+        Object model = null;
+        try {
+            model = loader.loadBuffered(new File(path));
+        } catch (IOException e) {
+            throw new NotFoundException(e);
+        }
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
-        CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
+        CriteriaQuery query = cb.createQuery(engine.getModelClass());
         pt.inevo.encontra.query.Path modelPath = query.from(engine.getModelClass()).get(engine.getType());
         query = query.where(cb.similar(modelPath, model)).distinct(true).limit(20);
 
-        ResultSet<E> results = engine.search(query);
+        ResultSet<Result> results = engine.search(query);
 
-        System.out.println("Number of retrieved elements: " + results.getSize());
-        for (Result<E> r : results) {
-            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
-            System.out.println("Similarity: " + r.getScore());
+        log.debug("Number of retrieved elements: " + results.getSize());
+        for (Result r : results) {
+            log.debug("Retrieved element: " + r.getResultObject().toString() + "\t");
+            log.debug("Similarity: " + r.getScore());
         }
         return "see_what_to_return";
     }
@@ -120,75 +136,70 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{type}/{descriptor}/storeIndex")
-    public String storeIndex (@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    public Response storeIndex (@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path) {
 
-        ClutchAbstractEngine engine = null;
+        ClutchAbstractEngine engine = ENGINES.get(type);
 
-        if(type.equals("image")){
-            engine = new ClutchImageEngine(descriptor);
+        log.info("Loading some objects to the test indexes...");
+
+        try {
+            ModelLoader loader = engine.getLoader();
+            loader.setModelsPath(path);
+            loader.load();
+            Iterator<File> it = loader.iterator();
+
+            for (int i = 0; it.hasNext(); i++) {
+                File f = it.next();
+                IEntity ml = loader.loadModel(f);
+                engine.insert(ml);
+            }
+        } catch (IOException e) {
+            throw new NotFoundException(e);
         }
-        else if (type.equals("3d")){
-            engine = new ClutchThreedEngine(descriptor);
-        }
-
-        System.out.println("Loading some objects to the test indexes...");
-        ModelLoader loader = engine.getLoader();
-        loader.setModelsPath(path);
-        loader.load();
-        Iterator<File> it = loader.iterator();
-
-        for (int i = 0; it.hasNext(); i++) {
-            File f = it.next();
-            E ml = (E) loader.loadModel(f);
-            engine.insert(ml);
-        }
-        return "see_what_to_return";
+        return Response.ok().build();
     }
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/{type}/{descriptor}/similar")
-    public String similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    public Response similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @QueryParam("path") String path) {
 
 
-        ClutchAbstractEngine engine = null;
+        ClutchAbstractEngine engine = ENGINES.get(type);
 
-        if(type.equals("image")){
-            engine = new ClutchImageEngine(descriptor);
-        }
-        else if (type.equals("3d")){
-            engine = new ClutchThreedEngine(descriptor);
-        }
-
-        System.out.println("Creating a knn query...");
+        log.info("Creating a knn query...");
 
         ModelLoader loader = engine.getLoader();
 
-        O model = (O) loader.loadBuffered(new File(path));
+        Object model = null;
+        try {
+            model = loader.loadBuffered(new File(path));
+        } catch (IOException e) {
+            throw new NotFoundException(e);
+        }
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
-        CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
+        CriteriaQuery query = cb.createQuery(engine.getModelClass());
         pt.inevo.encontra.query.Path modelPath = query.from(engine.getModelClass()).get(engine.getType());
         query = query.where(cb.similar(modelPath, model)).distinct(true).limit(20);
 
-        ResultSet<E> results = engine.search(query);
+        ResultSet<Result> results = engine.search(query);
 
-        System.out.println("Number of retrieved elements: " + results.getSize());
-        for (Result<E> r : results) {
-            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
-            System.out.println("Similarity: " + r.getScore());
+        log.debug("Number of retrieved elements: " + results.getSize());
+        for (Result r : results) {
+            log.debug("Retrieved element: " + r.getResultObject().toString() + "\t");
+            log.debug("Similarity: " + r.getScore());
         }
-        return "see_what_to_return";
+        return Response.ok().build();
     }
 
-
+/*
     @POST
     //@Produces(MediaType.TEXT_PLAIN)
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Path("/{type}/similar")
-    public String similar(@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
-                          @FormDataParam("file") FormDataContentDisposition fileDetail)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    public Response similar(@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
+                          @FormDataParam("file") FormDataContentDisposition fileDetail) {
 
         ClutchAbstractEngine engine = null;
 
@@ -199,7 +210,7 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine();
         }
 
-        System.out.println("Creating a knn query...");
+        log.info("Creating a knn query...");
 
         ModelLoader loader = engine.getLoader();
 
@@ -207,7 +218,12 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         String extension = filename.substring(filename.lastIndexOf("."));
 
         //Queremos inserir também na nossa DB?
-        O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
+        O model = null;
+        try {
+            model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
+        } catch (IOException e) {
+            throw new NotFoundException(e);
+        }
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
         CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
@@ -216,21 +232,20 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
 
         ResultSet<E> results = engine.search(query);
 
-        System.out.println("Number of retrieved elements: " + results.getSize());
+        log.debug("Number of retrieved elements: " + results.getSize());
         for (Result<E> r : results) {
-            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
-            System.out.println("Similarity: " + r.getScore());
+            log.debug("Retrieved element: " + r.getResultObject().toString() + "\t");
+            log.debug("Similarity: " + r.getScore());
         }
-        return "see_what_to_return";
+        return Response.ok().build();
     }
 
     @POST
     //@Produces(MediaType.TEXT_PLAIN)
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Path("/{type}/{descriptor}/similar")
-    public String similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @FormDataParam("file") InputStream uploadedInputStream,
-                          @FormDataParam("file") FormDataContentDisposition fileDetail)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    public Response similar(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @FormDataParam("file") InputStream uploadedInputStream,
+                          @FormDataParam("file") FormDataContentDisposition fileDetail) {
 
         ClutchAbstractEngine engine = null;
 
@@ -241,14 +256,19 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine(descriptor);
         }
 
-        System.out.println("Creating a knn query...");
+        log.info("Creating a knn query...");
 
         ModelLoader loader = engine.getLoader();
 
         String filename = fileDetail.getFileName();
         String extension = filename.substring(filename.lastIndexOf("."));
 
-        O model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
+        O model = null;
+        try {
+            model = (O) loader.loadBuffered(StreamUtil.stream2file(uploadedInputStream, extension));
+        } catch (IOException e) {
+            throw new NotFoundException(e);
+        }
 
         CriteriaBuilderImpl cb = new CriteriaBuilderImpl();
         CriteriaQuery<E> query = cb.createQuery(engine.getModelClass());
@@ -257,20 +277,20 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
 
         ResultSet<E> results = engine.search(query);
 
-        System.out.println("Number of retrieved elements: " + results.getSize());
+        log.debug("Number of retrieved elements: " + results.getSize());
         for (Result<E> r : results) {
-            System.out.print("Retrieved element: " + r.getResultObject().toString() + "\t");
-            System.out.println("Similarity: " + r.getScore());
+            log.debug("Retrieved element: " + r.getResultObject().toString() + "\t");
+            log.debug("Similarity: " + r.getScore());
         }
-        return "see_what_to_return";
+        return Response.ok().build();
     }
 
 
-    @POST
+     @POST
      @Consumes(MediaType.MULTIPART_FORM_DATA)
      @Path("/{type}/storeIndex")
-     public String storeIndex (@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
-                               @FormDataParam("file") FormDataContentDisposition fileDetail) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+     public Response storeIndex (@PathParam("type") String type, @FormDataParam("file") InputStream uploadedInputStream,
+                               @FormDataParam("file") FormDataContentDisposition fileDetail) {
 
         ClutchAbstractEngine engine = null;
 
@@ -281,24 +301,29 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
             engine = new ClutchThreedEngine();
         }
 
-        System.out.println("Loading some objects to the test indexes...");
+         log.info("Loading some objects to the test indexes...");
         ModelLoader loader = engine.getLoader();
 
         String filename = fileDetail.getFileName();
         String extension = filename.substring(filename.lastIndexOf("."));
 
-        E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
-        engine.insert(model);
+         E model = null;
+         try {
+             model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
+         } catch (IOException e) {
+             throw new NotFoundException(e);
+         }
+         engine.insert(model);
 
-        return "see_what_to_return";
+        return Response.ok().build();
     }
 
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Path("/{type}/{descriptor}/storeIndex")
-    public String storeIndex(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @FormDataParam("file") InputStream uploadedInputStream,
-                              @FormDataParam("file") FormDataContentDisposition fileDetail) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+    public Response storeIndex(@PathParam("type") String type, @PathParam("descriptor") String descriptor, @FormDataParam("file") InputStream uploadedInputStream,
+                              @FormDataParam("file") FormDataContentDisposition fileDetail) {
 
         ClutchAbstractEngine engine = null;
 
@@ -315,11 +340,16 @@ public class Search<S extends AbstractSearcher, D extends DescriptorExtractor, E
         String filename = fileDetail.getFileName();
         String extension = filename.substring(filename.lastIndexOf("."));
 
-        E model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
+        E model = null;
+        try {
+            model = (E) loader.loadModel(StreamUtil.stream2file(uploadedInputStream, extension));
+        } catch (IOException e) {
+            throw new NotFoundException(e);
+        }
         engine.insert(model);
 
-        return "see_what_to_return";
+        return Response.ok().build();
     }
 
-
+*/
 }

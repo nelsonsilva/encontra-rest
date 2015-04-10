@@ -40,7 +40,7 @@ public abstract class ClutchAbstractEngine<O extends IEntity, D extends Descript
         setResultProvider(new DefaultResultProvider());
     }
 
-    public abstract void setEngine() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException;
+    public abstract void setEngine() throws Exception;
 
     @Override
     protected Result<O> getResultObject(Result<IEntry> entryResult) {

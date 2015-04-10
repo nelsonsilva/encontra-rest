@@ -6,6 +6,7 @@ import pt.inevo.encontra.storage.ModelLoader;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -25,7 +26,7 @@ public class ImageModelLoader<I extends IEntity> extends ModelLoader {
     }
 
     @Override
-     public ImageModel loadModel(File image) {
+     public ImageModel loadModel(File image) throws IOException {
 
         //for now only sets the filename
         ImageModel im = new ImageModel(image.getAbsolutePath(), "", null);
@@ -34,29 +35,18 @@ public class ImageModelLoader<I extends IEntity> extends ModelLoader {
         //TO DO - load the description from here
 
         //get the bufferedimage
-        try {
-            BufferedImage bufImg = ImageIO.read(image);
-            im.setImage(bufImg);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
+        BufferedImage bufImg = ImageIO.read(image);
+        im.setImage(bufImg);
 
         return im;
     }
 
     @Override
-    public BufferedImage loadBuffered(File image) {
-
-        BufferedImage bufImg=null;
-        try {
-            bufImg = ImageIO.read(image);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return bufImg;
+    public BufferedImage loadBuffered(File image) throws IOException {
+        return ImageIO.read(image);
     }
 
-    public List<ImageModel> getModels(String path) {
+    public List<ImageModel> getModels(String path) throws IOException {
         File root = new File(path);
         String[] extensions = {"jpg", "png"};
 
@@ -81,7 +71,7 @@ public class ImageModelLoader<I extends IEntity> extends ModelLoader {
         load(this.modelsPath);
     }
 
-    public List<ImageModel> getImages() {
+    public List<ImageModel> getImages() throws IOException {
         return getModels(this.modelsPath);
     }
 

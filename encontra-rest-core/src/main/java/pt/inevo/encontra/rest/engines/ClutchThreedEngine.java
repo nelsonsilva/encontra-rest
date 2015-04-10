@@ -31,18 +31,18 @@ import java.lang.reflect.InvocationTargetException;
 public class ClutchThreedEngine<O extends IEntity, D extends DescriptorExtractor> extends ClutchAbstractEngine<O,D> {
 
 
-    public ClutchThreedEngine(String descriptor) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public ClutchThreedEngine(String descriptor) {
         super();
         desc = descriptor.toUpperCase();
         setEngine();
     }
 
-    public ClutchThreedEngine() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public ClutchThreedEngine() {
         super();
         setEngine();
     }
 
-    public  void setEngine() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    public  void setEngine() {
         loader = new ThreedModelLoader();
         type = "threedmodel";
         modelClass = ThreedModel.class;
@@ -54,7 +54,12 @@ public class ClutchThreedEngine<O extends IEntity, D extends DescriptorExtractor
         else {
             ThreedDescriptorMap descMap = ThreedDescriptorMap.valueOf(desc);
             Class<?> descriptorClass = descMap.getFeatureClass();
-            descriptor = (D) descriptorClass.getConstructor().newInstance();
+            // TODO: use custom exception
+            try {
+                descriptor = (D) descriptorClass.getConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         String indexPath = "data/"+type+"/indexes/"+desc+"/";

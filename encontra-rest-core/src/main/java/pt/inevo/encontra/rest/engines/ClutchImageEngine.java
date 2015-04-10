@@ -26,18 +26,18 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class ClutchImageEngine<O extends IEntity, D extends DescriptorExtractor> extends ClutchAbstractEngine<O, D> {
 
-    public ClutchImageEngine(String descriptor) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public ClutchImageEngine(String descriptor) {
         super();
         desc = descriptor.toUpperCase();
         setEngine();
     }
 
-    public ClutchImageEngine() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public ClutchImageEngine() {
         super();
         setEngine();
     }
 
-    public void setEngine() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    public void setEngine() {
         loader = new ImageModelLoader();
         type = "image";
         modelClass = ImageModel.class;
@@ -50,7 +50,12 @@ public class ClutchImageEngine<O extends IEntity, D extends DescriptorExtractor>
         else {
             ImageDescriptorMap descMap = ImageDescriptorMap.valueOf(desc);
             Class<?> descriptorClass = descMap.getFeatureClass();
-            descriptor = (D) descriptorClass.getConstructor().newInstance();
+            // TODO: use custom exception
+            try {
+                descriptor = (D) descriptorClass.getConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         String indexPath = "data/"+type+"/indexes/"+desc+"/";

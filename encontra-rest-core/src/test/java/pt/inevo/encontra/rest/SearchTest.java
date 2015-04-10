@@ -36,7 +36,6 @@ public class SearchTest extends JerseyTest {
     @Override
     protected Application configure() {
         return new ResourceConfig(Search.class)
-                .packages("org.glassfish.jersey.examples.multipart")
                 .register(MultiPartFeature.class);
     }
 
@@ -47,9 +46,10 @@ public class SearchTest extends JerseyTest {
 
     @Test
     public void testStorage() {
-        final String responseMsg = target().path("search/3d/storeIndex").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples").request().get(String.class);
+        String modelDirectory = getClass().getResource("/models").getPath();
+        final Response responseMsg = target().path("search/3d/storeIndex").queryParam(modelDirectory).request().get(Response.class);
         //final String responseMsg = target().path("search/3d/a3/storeIndex").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples").request().get(String.class);
-
+        return;
        // final String responseMsg = target().path("search/image/storeIndex").queryParam("path", "C:\\Users\\João\\Desktop\\imagens").request().get(String.class);
     }
 
@@ -58,8 +58,9 @@ public class SearchTest extends JerseyTest {
 
     @Test
     public void testSimilar() {
+        String model = getClass().getResource("/models/m0.off").getPath();
     //    final String responseMsg = target().path("search/image/similar").queryParam("path", "C:\\Users\\João\\Desktop\\img.png").request().get(String.class);
-        final String responseMsg = target().path("search/3d/similar").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off").request().get(String.class);
+        final String responseMsg = target().path("search/3d/similar").queryParam("path", model).request().get(String.class);
     //    final String responseMsg = target().path("search/3d/a3/similar").queryParam("path", "C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off").request().get(String.class);
 
     }
@@ -67,8 +68,10 @@ public class SearchTest extends JerseyTest {
     @Test
     public void testSimilarFile() throws IOException {
 
+        String model = getClass().getResource("/models/m0.off").getPath();
+
         // MediaType of the body part will be derived from the file.
-        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File("C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off"));
+        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File(model));
 
         final FormDataMultiPart multipart = new FormDataMultiPart()
                 .field("filename", "m0.off");
@@ -83,8 +86,10 @@ public class SearchTest extends JerseyTest {
     @Test
     public void testIndexFile() throws IOException {
 
+        String model = getClass().getResource("/models/m0.off").getPath();
+
         // MediaType of the body part will be derived from the file.
-        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File("C:\\Users\\João\\Dropbox\\Vahid\\codebox\\model-samples\\m0.off"));
+        final FileDataBodyPart filePart = new FileDataBodyPart("file", new File(model));
 
         final FormDataMultiPart multipart = new FormDataMultiPart()
                 .field("filename", "m0.off");
